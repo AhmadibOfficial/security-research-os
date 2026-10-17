@@ -41,6 +41,43 @@ class ReportsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             canonical({"schema_version": "0.1", "assessment_type": "unknown", "findings": []})
 
+    def test_deeplink_adapter_does_not_reveal_component_or_host(self):
+        source = {
+            "schema_version": "0.1", "assessment_type": "offline_manifest_xml",
+            "deeplinks": [{"component": "SENSITIVE_APP", "hosts": ["secret.example.test"],
+                           "observations": ["plaintext_link_scheme"]}]
+        }
+        converted = canonical(source)
+        self.assertEqual(converted["observation_count"], 1)
+        self.assertEqual(converted["observations"][0]["rule_id"], "DL-plaintext_link_scheme")
+        self.assertNotIn("secret.example.test", json.dumps(converted))
+        self.assertNotIn("SENSITIVE_APP", json.dumps(converted))
+
+    def test_webview_adapter_preserves_only_rule(self):
+        converted = canonical({
+            "schema_version": "0.1", "assessment_type": "offline_source_heuristics",
+            "findings": [{"rule_id": "WV-001", "line": 42,
+                          "source": "DO_NOT_EXPORT_SOURCE"}]
+        })
+        self.assertEqual(converted["observations"][0]["rule_id"], "WV-001")
+        self.assertNotIn("DO_NOT_EXPORT_SOURCE", json.dumps(converted))
+
+    def test_agent_adapter_records_only_denied_reasons(self):
+        converted = canonical({
+            "schema_version": "0.1", "assessment_type": "synthetic_agent_permissions",
+            "results": [{"id": "CONFIDENTIAL", "allowed": False,
+                         "reasons": ["trust_boundary"]},
+                        {"id": "SAFE", "allowed": True, "reasons": []}]
+        })
+        self.assertEqual(converted["observation_count"], 1)
+        self.assertEqual(converted["observations"][0]["rule_id"], "AGENT-trust_boundary")
+        self.assertNotIn("CONFIDENTIAL", json.dumps(converted))
+
+    def test_deeplink_rejects_malformed_observations(self):
+        with self.assertRaises(ValueError):
+            canonical({"schema_version": "0.1", "assessment_type": "offline_manifest_xml",
+                       "deeplinks": [{"observations": ["<private>"]}]})
+
     def test_output_owner_only_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "evidence.json"
