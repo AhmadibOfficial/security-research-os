@@ -35,9 +35,17 @@ class QueryPackTests(unittest.TestCase):
         self.assertEqual(len(fixed), 2)
         self.assertFalse(vulnerable & fixed)
 
-    def test_acceptance_passes_when_actual_codeql_locations_are_right(self):
+    def test_synthetic_sarif_acceptance_does_not_claim_codeql_executed(self):
+        import contextlib
+        from io import StringIO
+
         vulnerable, _ = lab.markers()
-        lab.audit_sarif(synthetic_report(vulnerable))
+        output = StringIO()
+        with contextlib.redirect_stdout(output):
+            lab.audit_sarif(synthetic_report(vulnerable))
+        self.assertIn("Synthetic SARIF acceptance test", output.getvalue())
+        self.assertIn("No CodeQL CLI execution", output.getvalue())
+        self.assertNotIn("CodeQL executed", output.getvalue())
 
     def test_acceptance_rejects_missed_vulnerability(self):
         vulnerable, _ = lab.markers()
