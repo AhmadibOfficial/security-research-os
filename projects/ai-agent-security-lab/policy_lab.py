@@ -64,7 +64,8 @@ def evaluate_suite(path: Path) -> dict:
             raise ValueError("Duplicate scenario identifier")
         ids.add(result["id"])
         results.append(result)
-    return {"schema_version": "0.1", "suite_sha256": hashlib.sha256(raw).hexdigest(),
+    return {"schema_version": "0.1", "assessment_type": "synthetic_agent_permissions",
+            "suite_sha256": hashlib.sha256(raw).hexdigest(),
             "case_count": len(results), "blocked_count": sum(not x["allowed"] for x in results),
             "results": results,
             "limitations": ["This is a policy simulator, not an LLM penetration test.",
