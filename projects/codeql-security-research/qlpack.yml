@@ -1,0 +1,6 @@
+name: ahmadibofficial/codeql-security-research
+version: 0.1.0
+description: Authorized, synthetic-fixture CodeQL vulnerability research
+license: Apache-2.0
+dependencies:
+  codeql/python-all: "*"
