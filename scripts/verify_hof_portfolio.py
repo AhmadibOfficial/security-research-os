@@ -139,6 +139,62 @@ def main() -> int:
             results.append({"id": number, "project": name, "source_ref": ref,
                             "expected_sha": sha, "checks": checks})
         integrations = []
+        # Contract-only cross-project fixtures; no live app, CodeQL scan or exploit.
+        if 2 in dirs:
+            osroot = dirs[2]
+            private = work / "research-private"
+            env = dict(os.environ, PYTHONPATH=str(osroot / "src"))
+            def os_cli(*args):
+                return execute([sys.executable, "-m", "research_os", "--data-dir",
+                                str(private), *args], osroot, env=env)
+            registered = os_cli("scope-add", "--name", "Synthetic contract lab",
+                                "--asset", "owned synthetic examples",
+                                "--basis", "Self-created source fixtures",
+                                "--expires", "2099-12-31")
+            if registered["status"] == "passed":
+                import re
+                found = re.search(r"SCOPE-[0-9a-f]+", registered["stdout"])
+                if found is None:
+                    integrations.append({"name": "01/03->02 scope setup", "status": "failed"})
+                else:
+                    scope_id = found.group(0)
+                    ast = work / "synthetic-android.json"
+                    ast.write_text(json.dumps({
+                        "schema_version": "1.0", "assessment_type": "offline_static",
+                        "summary": {"total_observations": 1},
+                        "findings": [{"id": "SYNTHETIC-ONLY"}]
+                    }))
+                    os.chmod(ast, 0o600)
+                    integrations.append({"name": "01->02 synthetic JSON contract",
+                                         **os_cli("scan-import", "--scope-id", scope_id,
+                                                  "--report", str(ast))})
+                    sarif = work / "synthetic-codeql.sarif"
+                    sarif.write_text(json.dumps({
+                        "version": "2.1.0", "runs": [{
+                            "tool": {"driver": {"name": "CodeQL"}},
+                            "results": [{
+                                "ruleId": "synthetic/local-example",
+                                "message": {"text": "PRIVATE_SYNTHETIC_MARKER"},
+                                "locations": [{
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": "synthetic.py"},
+                                        "region": {"startLine": 3}
+                                    }
+                                }]
+                            }]
+                        }]
+                    }))
+                    os.chmod(sarif, 0o600)
+                    integrations.append({"name": "03->02 synthetic SARIF contract",
+                                         **os_cli("codeql-import", "--scope-id", scope_id,
+                                                  "--sarif", str(sarif))})
+                    queue = os_cli("codeql-queue")
+                    if "PRIVATE_SYNTHETIC_MARKER" in queue.get("stdout", ""):
+                        queue["status"] = "failed"
+                        queue["reason"] = "Sensitive SARIF marker escaped private ledger"
+                    integrations.append({"name": "02 private CodeQL queue", **queue})
+            else:
+                integrations.append({"name": "01/03->02 scope setup", **registered})
         if 11 in dirs:
             report_engine = dirs[11] / "report_engine.py"
             for number, fixture in ((4, "fixtures/owned-lab-matrix.json"),
