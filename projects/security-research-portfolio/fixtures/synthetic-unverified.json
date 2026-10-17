@@ -1,0 +1,14 @@
+{
+  "program": "AHMAD-IB Hall of Fame Automation Program",
+  "records": [
+    {
+      "id": "sample-pending-research",
+      "program": "github-security-lab",
+      "contribution": "Synthetic example pending third-party review",
+      "public_url": "https://example.org/NOT-AN-AWARD",
+      "verification_status": "pending",
+      "publication_approved": false,
+      "authorization_to_publish": false
+    }
+  ]
+}
