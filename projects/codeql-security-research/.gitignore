@@ -1,0 +1,14 @@
+# Source-only security research; keep generated artifacts private.
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.qlcache/
+.codeql/
+codeql-databases/
+*.sarif
+*.sarif.json
+*.bqrs
+*.actual
+results/
+private/
