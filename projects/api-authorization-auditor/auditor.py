@@ -48,10 +48,13 @@ def assess(document: object) -> dict:
         if case_id in ids:
             raise ValueError("Duplicate scenario id")
         ids.add(case_id)
-        if case["dimension"] not in DIMENSIONS or case["operation"] not in OPERATIONS:
-            raise ValueError("Unexpected authorization dimension or operation")
-        if case["expected"] not in DECISIONS or case["observed"] not in OBSERVATIONS:
-            raise ValueError("Unexpected expected/observed outcome")
+        for field, accepted in (
+            ("dimension", DIMENSIONS), ("operation", OPERATIONS),
+            ("expected", DECISIONS), ("observed", OBSERVATIONS),
+        ):
+            value = case[field]
+            if not isinstance(value, str) or value not in accepted:
+                raise ValueError(f"Invalid {field} in synthetic authorization case")
         if type(case["impact_verified"]) is not bool:
             raise ValueError("impact_verified must be a boolean")
         if case["observed"] != "granted" and case["impact_verified"]:
