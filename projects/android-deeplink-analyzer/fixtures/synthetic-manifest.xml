@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.synthetic.lab">
+  <application>
+    <activity android:name=".WebGateway" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="http"/>
+      </intent-filter>
+    </activity>
+    <activity android:name=".SecureLink" android:exported="true">
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="https" android:host="lab.example.test"/>
+      </intent-filter>
+    </activity>
+    <activity android:name=".InternalOnly" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="https" android:host="internal.example.test"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

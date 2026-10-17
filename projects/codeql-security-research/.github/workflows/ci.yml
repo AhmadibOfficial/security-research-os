@@ -1,0 +1,32 @@
+name: Project 03 Source Quality (not CodeQL runtime proof)
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Validate static query and synthetic fixture gates
+        run: |
+          python -m compileall -q fixtures tests scripts
+          python -m unittest discover -s tests -v
+          python scripts/run_lab.py --static-only
+
+# This workflow deliberately does not claim CodeQL runtime validation.
+# Real CodeQL compilation/query evaluation remains a separate local release gate.
