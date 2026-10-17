@@ -73,7 +73,7 @@ def result_locations(document: dict) -> set[int]:
     return rows
 
 
-def audit_sarif(document: dict) -> None:
+def audit_sarif(document: dict, *, real_execution: bool = False) -> None:
     if document.get("version") != "2.1.0":
         raise ValueError("Expected SARIF 2.1.0")
     runs = document.get("runs")
@@ -92,8 +92,13 @@ def audit_sarif(document: dict) -> None:
             f"alerts on negative lines={sorted(false_positives)}, "
             f"observed lines={sorted(locations)}"
         )
-    print(f"PASS: CodeQL executed and detected {len(wanted)} synthetic positive "
-          f"locations without flagging {len(safe)} fixed controls.")
+    if real_execution:
+        print(f"PASS: CodeQL CLI-generated SARIF matched {len(wanted)} expected "
+              f"positive locations and excluded {len(safe)} negative controls.")
+    else:
+        print(f"PASS: Synthetic SARIF acceptance test matched {len(wanted)} "
+              f"expected positive locations and excluded {len(safe)} controls.")
+        print("NOTE: No CodeQL CLI execution is established by this test.")
 
 
 def _save_private(source: Path, target: Path) -> None:
@@ -140,7 +145,7 @@ def main() -> int:
             execute([binary, "database", "analyze", str(database), str(QUERY),
                      "--format=sarif-latest", f"--output={sarif}", "--rerun"], ROOT)
             report = json.loads(sarif.read_text(encoding="utf-8"))
-            audit_sarif(report)
+            audit_sarif(report, real_execution=True)
             if ns.sarif_out:
                 _save_private(sarif, ns.sarif_out)
         return 0
