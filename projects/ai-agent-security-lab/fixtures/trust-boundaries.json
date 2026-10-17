@@ -1,0 +1,10 @@
+{
+  "mode": "synthetic_only",
+  "cases": [
+    {"id": "untrusted-text-sends-mail", "origin": "retrieved", "requested_action": "send_message", "approval": false, "delegated_by": "system"},
+    {"id": "trusted-dev-writes-with-approval", "origin": "developer", "requested_action": "modify_repository", "approval": true, "delegated_by": null},
+    {"id": "dev-write-without-approval", "origin": "developer", "requested_action": "modify_repository", "approval": false, "delegated_by": null},
+    {"id": "public-knowledge-allowed", "origin": "retrieved", "requested_action": "read_public", "approval": false, "delegated_by": null},
+    {"id": "user-reads-private", "origin": "user", "requested_action": "read_private", "approval": false, "delegated_by": null}
+  ]
+}

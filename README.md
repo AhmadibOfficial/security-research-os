@@ -63,3 +63,17 @@ research-os scan-import --scope-id SCOPE-REPLACE_WITH_REAL_ID \
 ```
 
 This stores only a SHA-256 digest, observation count, and scope reference in private local storage. It **does not** upload or duplicate raw evidence and never promotes warnings to validated vulnerabilities. The actual Android finding review remains a separate, authorized research task.
+
+## Project 03 bridge: private CodeQL candidate queue
+
+Research OS can now ingest a **locally produced, authorized CodeQL SARIF 2.1.0 report** into a private candidate ledger. It does not run queries or scan external assets, and it never promotes a CodeQL pattern match to a confirmed vulnerability.
+
+```bash
+research-os codeql-import --scope-id SCOPE-REPLACE_WITH_REAL_ID --sarif /path/to/local-codeql.sarif
+research-os codeql-queue
+research-os codeql-triage --candidate-id CQL-REPLACE_WITH_REAL_ID --status reviewing
+```
+
+The intake keeps only SHA-256 fingerprints, a conservative rule ID, severity level and triage status. Private paths, findings, source snippets and messages are not copied into the ledger. Same-scope deduplication and evidence-gated case linking are enforced. The ledger is outside Git; do not commit the original SARIF file. See [CodeQL intake safeguards](docs/CODEQL_INTAKE.md).
+
+**Operational status:** GitHub Actions is blocked at the account payment/spending gate; successful local tests are not a substitute for the public release gate. Keep this repository private until that gate is genuinely cleared.

@@ -24,3 +24,8 @@ evidence*.json
 *.key
 .env
 .env.*
+
+# CodeQL input/output stays outside Git
+*.sarif
+*.sarif.json
+/codeql_queue.json

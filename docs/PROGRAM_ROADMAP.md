@@ -45,3 +45,11 @@ Exit: accepted remediations or qualifying research contributions *where earned*,
 - Authorization and target-scope evidence for live research
 - Responsible private disclosure and permission to publish
 - Credit only after verifiable external acknowledgment
+
+## HOF-003 — CodeQL query engineering (development staging, 17 October 2026)
+
+- **Built in draft source:** `projects/codeql-security-research/` contains an isolated Python CodeQL query pack, synthetic vulnerable and fixed Flask filesystem-path examples, offline fixture/acceptance tests, and a script to split the pack into its own *private* repository.
+- **Source baseline:** `UntrustedPathReview.ql` reuses GitHub CodeQL's established Python path-injection taint-tracking library. This is a baseline and is not a new query discovery, proven vulnerability or recognition claim.
+- **Next evidence gate:** a legitimately installed CodeQL CLI must compile the query and produce genuine SARIF for the deliberately vulnerable/fixed corpus; scripts refuse to claim CodeQL success based on Python fixture tests.
+- **Project 02 intake:** import the actual synthetic CodeQL SARIF into the locally scoped `codeql-import` queue to establish candidate provenance and de-duplication, not exploit confirmation.
+- **Publication:** standalone repository remains PRIVATE; GitHub Actions is currently blocked by account billing restrictions. Do not bypass the hosted CI/approval policy by making it public.
