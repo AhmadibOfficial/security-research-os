@@ -12,6 +12,26 @@ This pack is a separate, private-by-default engineering component of the 12-proj
 
 The deliberately synthetic `flask_path_cases.py` fixture has two untrusted `open()` path flows and two controls (constant path and allowlisted path). The Flask sample must not be deployed or executed as a network service.
 
+## Install the official CodeQL CLI bundle on Kali
+
+**Prerequisite:** Use CodeQL only where GitHub's licensing terms permit. The bundle is distributed subject to GitHub's [CodeQL terms](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md). In particular, routine proprietary-code CI is **not** covered by the research/open-source grant.
+
+From this pack directory, after the normal source tests:
+
+```bash
+bash scripts/install_codeql_kali.sh
+# The first run prints the terms and stops.
+# Only after reviewing and accepting them:
+bash scripts/install_codeql_kali.sh --accept-reviewed-terms
+export PATH="$HOME/.local/opt/codeql-bundle/codeql:$PATH"
+codeql version
+codeql resolve packs
+```
+
+The installer needs `gh`, `tar` and `sha256sum`; it finds the latest official non-prerelease `codeql-bundle-v*` release, downloads a platform-specific Linux `.tar.gz` bundle, checks its published GitHub SHA-256, and extracts to `~/.local/opt/codeql-bundle`. It refuses to overwrite an existing installation, requires no `sudo`, does not change shell configuration, and does not upload any project data. Bundle download requires internet access and sufficient disk space.
+
+For manual installation, follow the [official GitHub setup instructions](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/scan-from-the-command-line/set-up-codeql-cli).
+
 ## First run on Kali
 
 ```bash
