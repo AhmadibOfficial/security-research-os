@@ -1,0 +1,8 @@
+{
+  "provider": "azure",
+  "policy": {
+    "roleName": "synthetic-broad-role",
+    "permissions": [{"actions": ["*"], "notActions": [], "dataActions": [], "notDataActions": []}],
+    "assignableScopes": ["/subscriptions/example-only"]
+  }
+}
