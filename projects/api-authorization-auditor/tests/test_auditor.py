@@ -58,6 +58,11 @@ class AuthorizationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mod.assess(self.document)
 
+    def test_malformed_unhashable_values_fail_closed(self):
+        self.document["cases"][0]["dimension"] = {"bad": "mapping"}
+        with self.assertRaises(ValueError):
+            mod.assess(self.document)
+
     def test_reject_duplicate_scenarios(self):
         self.document["cases"][1]["id"] = self.document["cases"][0]["id"]
         with self.assertRaises(ValueError):
