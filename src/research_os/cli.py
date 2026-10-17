@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from research_os.codeql import import_codeql_sarif, list_codeql_candidates, triage_codeql_candidate
 from research_os.core import (
     DEFAULT_PRIVATE, add_case, add_recognition, add_scope, ingest_android_report, next_project,
     registry, scorecard, update_case, validate_registry,
@@ -42,6 +43,14 @@ def parse_args(argv=None):
     recognition = commands.add_parser("recognition-add", help="Log an unverified public recognition claim")
     for field in ("case-id", "program", "url"):
         recognition.add_argument("--" + field, required=True)
+    codeql = commands.add_parser("codeql-import", help="Index local CodeQL SARIF privately without storing raw findings")
+    codeql.add_argument("--scope-id", required=True)
+    codeql.add_argument("--sarif", type=Path, required=True)
+    commands.add_parser("codeql-queue", help="Show locally indexed, unverified CodeQL candidates")
+    triage = commands.add_parser("codeql-triage", help="Record manual CodeQL candidate triage")
+    triage.add_argument("--candidate-id", required=True)
+    triage.add_argument("--status", choices=("reviewing", "dismissed", "case_linked"), required=True)
+    triage.add_argument("--case-id")
     return p.parse_args(argv)
 
 
@@ -73,6 +82,14 @@ def main(argv=None) -> int:
         elif options.command == "scan-import":
             result = ingest_android_report(options.report, options.scope_id, options.data_dir)
             print(f"Private Android evidence {result['id']} indexed: {result['observation_count']} unverified observations")
+        elif options.command == "codeql-import":
+            item = import_codeql_sarif(options.sarif, options.scope_id, options.data_dir)
+            print(f"CodeQL report {item['id']} indexed privately: {item['finding_count']} unverified findings, {item['new_candidates']} new candidates")
+        elif options.command == "codeql-queue":
+            print(json.dumps(list_codeql_candidates(options.data_dir), indent=2))
+        elif options.command == "codeql-triage":
+            item = triage_codeql_candidate(options.candidate_id, options.status, options.data_dir, options.case_id)
+            print(f"CodeQL candidate {item['id']}: {item['status']} (no validation implied)")
         elif options.command == "case-add":
             record = add_case(options.project, options.scope_id, options.title, options.evidence,
                               options.data_dir, portfolio)
