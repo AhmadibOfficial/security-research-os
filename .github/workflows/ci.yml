@@ -1,0 +1,34 @@
+name: Research OS CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify registry and test private lifecycle
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m research_os verify
+          python -m compileall -q src tests
+          python -m unittest discover -s tests -v
+      - name: Ensure no sensitive binaries are tracked
+        run: |
+          if git ls-files | grep -Ei '(^|/)(__pycache__|\.venv|private|research-private)/|\.(apk|apks|aab|jks|keystore|p12|pfx|pem|key)$'; then
+            echo 'Forbidden artifact committed'; exit 1
+          fi

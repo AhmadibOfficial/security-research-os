@@ -1,0 +1,26 @@
+{
+  "program": "AHMAD-IB Hall of Fame Automation Program",
+  "motto": "Not every vulnerability matters. Fix the ones that do.",
+  "mission": "Create verified security value through responsible, authorized research and reproducible open-source engineering.",
+  "recognition_targets": [
+    {"id": "github-security-lab", "name": "GitHub Security Lab — CodeQL Wall of Fame", "url": "https://securitylab.github.com/codeql-wall-of-fame/"},
+    {"id": "google-bughunters", "name": "Google Bug Hunters", "url": "https://bughunters.google.com/"},
+    {"id": "msrc", "name": "Microsoft Researcher Recognition", "url": "https://msrc.microsoft.com/leaderboard"},
+    {"id": "hackerone", "name": "HackerOne", "url": "https://hackerone.com/leaderboard"},
+    {"id": "owasp-mobile", "name": "OWASP Mobile Application Security", "url": "https://mas.owasp.org/contributing/"}
+  ],
+  "projects": [
+    {"id": 1, "repo": "android-security-toolkit", "priority": "high", "state": "foundation_live", "goal": "Android APK analysis, evidence and risk assessment", "depends_on": [], "next_gate": "Validate NSC policy semantics and provider authorization tests with reproducible fixtures"},
+    {"id": 2, "repo": "security-research-os", "priority": "high", "state": "building", "goal": "Coordinate research, evidence, responsible disclosure, and verified recognition", "depends_on": [1], "next_gate": "Publish tested scope-aware research ledger and project registry"},
+    {"id": 3, "repo": "codeql-security-research", "priority": "high", "state": "planned", "goal": "Develop reproducible CodeQL queries for real source-code weaknesses", "depends_on": [2], "next_gate": "Add synthetic vulnerable and fixed query test projects"},
+    {"id": 4, "repo": "api-authorization-auditor", "priority": "high", "state": "planned", "goal": "Identify authorization and business-logic weaknesses in authorized test environments", "depends_on": [2, 6], "next_gate": "Build request/response access-control matrix with local fixtures"},
+    {"id": 5, "repo": "github-actions-security-auditor", "priority": "high", "state": "planned", "goal": "Detect insecure CI/CD permissions and supply-chain trust boundaries", "depends_on": [2], "next_gate": "Add YAML fixture rules for untrusted contexts and excessive token permissions"},
+    {"id": 6, "repo": "mobile-api-attack-lab", "priority": "high", "state": "planned", "goal": "Reproducible vulnerable Android and API learning lab", "depends_on": [2], "next_gate": "Build a Docker-only local authorization lab with safe synthetic data"},
+    {"id": 7, "repo": "android-deeplink-analyzer", "priority": "medium", "state": "planned", "goal": "Analyze deep links, intents, and exposed Android entry points", "depends_on": [1], "next_gate": "Compare exported intent filters against synthetic deep-link fixtures"},
+    {"id": 8, "repo": "webview-security-analyzer", "priority": "medium", "state": "planned", "goal": "Analyze WebView data flows and JavaScript bridge configurations", "depends_on": [1, 6], "next_gate": "Create a safe JavaScript-interface inventory with negative tests"},
+    {"id": 9, "repo": "ai-agent-security-lab", "priority": "medium", "state": "planned", "goal": "Test AI agent trust boundaries and tool permission behavior", "depends_on": [2, 6], "next_gate": "Create isolated prompt-injection and excessive-authority test fixtures"},
+    {"id": 10, "repo": "cloud-iam-auditor", "priority": "medium", "state": "planned", "goal": "Audit authorized AWS/Azure identity configuration snapshots", "depends_on": [2], "next_gate": "Read-only least-privilege policy analysis on synthetic IAM examples"},
+    {"id": 11, "repo": "security-report-engine", "priority": "medium", "state": "planned", "goal": "Generate JSON, HTML, and SARIF evidence reports", "depends_on": [1, 2], "next_gate": "Implement schema conversion from AST-018 without credential disclosure"},
+    {"id": 12, "repo": "security-research-portfolio", "priority": "medium", "state": "planned", "goal": "Publish only authorized research, CVE credits, and accepted contributions", "depends_on": [2, 11], "next_gate": "Render verified public recognition ledger without unverifiable claims"}
+  ]
+}

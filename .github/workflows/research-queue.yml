@@ -1,0 +1,38 @@
+name: Hall of Fame Research Queue
+on:
+  schedule:
+    - cron: '17 7 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Validate registry
+        env:
+          PYTHONPATH: src
+        run: python -m research_os verify
+      - name: Create one deduplicated build milestone issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PYTHONPATH: src
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="$(python -m research_os issue-template | head -n 1)"
+          if gh issue list --repo "$REPO" --state all --limit 200 --json title \
+            --jq '.[].title' | grep -Fqx -- "$title"; then
+            echo "Milestone already tracked: $title"
+          else
+            python -m research_os issue-template > /tmp/milestone.txt
+            gh issue create --repo "$REPO" --title "$title" --body-file /tmp/milestone.txt
+          fi
