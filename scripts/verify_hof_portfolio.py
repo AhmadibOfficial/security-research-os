@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Offline consolidated verification for all 12 AHMAD-IB Hall of Fame tools.
+
+Reads immutable, locally fetched Git branch tips into temporary workspaces.
+Never merges, pushes, exploits targets, deploys, publishes, or relaxes CI gates.
+"""
+from __future__ import annotations
+
+import argparse
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import subprocess
+import sys
+import tarfile
+import tempfile
+
+# Each source revision is explicitly pinned: silently updated branches are blocked.
+SOURCES = {
+    2: ("research-os", "feature/hof-003-codeql-query-pack", "5f0301d104751d87c020a02a56bd0b948b7e2b41"),
+    3: ("codeql-security-research", "feature/hof-003-codeql-query-pack", "5f0301d104751d87c020a02a56bd0b948b7e2b41"),
+    4: ("api-authorization-auditor", "feature/hof-004-offline-api-authorization-auditor", "88409b610d2edc6ea0c731f2fe1bbc447351a8d1"),
+    5: ("github-actions-security-auditor", "feature/hof-005-offline-actions-security-auditor", "80743c54d698ff03d4d5efadbf4c6ae041b4afac"),
+    6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "07f1240e5a54ae74ba9eba0dbb0bdbf319747178"),
+    7: ("android-deeplink-analyzer", "feature/hof-07-android-deeplink-analyzer", "fb8f08358d67d0fc1944a615362335d9b42a6b51"),
+    8: ("webview-security-analyzer", "feature/hof-08-webview-security-analyzer", "6b9c426f80acc681d03596ab660e9dc357b59add"),
+    9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "6dce830a401f08c26ca01096d0bfb2b79c2a9093"),
+    10: ("cloud-iam-auditor", "feature/hof-10-cloud-iam-auditor", "3360a7231db894816b7dfde3605db793402b78d5"),
+    11: ("security-report-engine", "feature/hof-11-security-report-engine", "ab426c1ab24df389c6640b128fc7d2cc25f1fe65"),
+    12: ("security-research-portfolio", "feature/hof-12-security-research-portfolio", "16f0cb8a7918b1f214c02138ff4720ab9a4ff812"),
+}
+
+
+def execute(args: list[str], cwd: Path, *, timeout=120, env=None) -> dict:
+    try:
+        r = subprocess.run(args, cwd=cwd, env=env, timeout=timeout,
+                           text=True, capture_output=True, check=False)
+        return {"status": "passed" if r.returncode == 0 else "failed",
+                "exit_code": r.returncode, "stdout": r.stdout[-600:],
+                "stderr": r.stderr[-600:]}
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"status": "blocked", "reason": str(exc)[:250]}
+
+
+def from_ref(repo: Path, ref: str, expected: str, source: str, destination: Path):
+    check = execute(["git", "rev-parse", "--verify", ref + "^{commit}"], repo)
+    if check["status"] != "passed" or check["stdout"].strip() != expected:
+        raise ValueError("Pinned source missing or changed: " + ref)
+    raw = subprocess.run(["git", "archive", "--format=tar", ref, source], cwd=repo,
+                         check=True, capture_output=True, timeout=60).stdout
+    allowed = PurePosixPath(source)
+    parents = {str(p) for p in allowed.parents if str(p) != "."}
+    with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+        members = archive.getmembers()
+        if not members or len(members) > 450:
+            raise ValueError("Source archive empty or unexpectedly large")
+        for member in members:
+            path = PurePosixPath(member.name)
+            in_scope = (member.name.rstrip("/") == str(allowed) or
+                        member.name.startswith(str(allowed) + "/") or
+                        (member.isdir() and member.name.rstrip("/") in parents))
+            if (path.is_absolute() or ".." in path.parts or not in_scope or
+                    not (member.isdir() or member.isfile()) or member.size > 3_000_000):
+                raise ValueError("Unsafe or unexpected Git archive member")
+            out = destination.joinpath(*path.parts)
+            if not out.resolve(strict=False).is_relative_to(destination.resolve()):
+                raise ValueError("Path traversal blocked")
+        for member in members:
+            out = destination.joinpath(*PurePosixPath(member.name).parts)
+            if member.isdir():
+                out.mkdir(parents=True, exist_ok=True)
+            else:
+                out.parent.mkdir(parents=True, exist_ok=True)
+                with archive.extractfile(member) as source_stream, out.open("xb") as target:
+                    if source_stream is None:
+                        raise ValueError("Missing archived source")
+                    target.write(source_stream.read())
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="12-project consolidated synthetic verification")
+    parser.add_argument("--research-os", type=Path, default=Path.home() / "security-research-os")
+    parser.add_argument("--android-root", type=Path, default=Path.home() / "android-security-toolkit-public")
+    parser.add_argument("--fetch", action="store_true",
+                        help="Fetch latest Git refs; changed heads remain blocked until pin update")
+    parser.add_argument("--codeql-runtime", action="store_true",
+                        help="Execute the actual licensed CodeQL engine; may download query packs")
+    parser.add_argument("--out", type=Path, help="Private JSON status record, outside source repository")
+    args = parser.parse_args()
+    repo = args.research_os.expanduser().resolve()
+    if not (repo / ".git").exists():
+        parser.error("Expected local Research OS Git clone")
+    if args.fetch:
+        fetched = execute(["git", "fetch", "--no-tags", "origin"], repo)
+        if fetched["status"] != "passed":
+            print("HOLD: cannot fetch source branches", fetched, file=sys.stderr)
+            return 2
+    with tempfile.TemporaryDirectory(prefix="ahmadib-hof-") as workspace:
+        work = Path(workspace)
+        os.chmod(work, 0o700)
+        results = []
+        dirs = {}
+        android = args.android_root.expanduser().resolve()
+        if (android / ".git").exists():
+            first = execute([sys.executable, "-m", "pytest", "-q"], android, timeout=180)
+        else:
+            first = {"status": "blocked", "reason": "Android Security Toolkit checkout missing"}
+        results.append({"id": 1, "project": "android-security-toolkit", "checks": [first]})
+        for number, (name, branch, sha) in SOURCES.items():
+            target = work / str(number)
+            target.mkdir()
+            ref = "origin/" + branch
+            checks = []
+            try:
+                requested = ("src", "tests", "portfolio.json") if number == 2 else ("projects/" + name,)
+                for source in requested:
+                    from_ref(repo, ref, sha, source, target)
+                cwd = target if number == 2 else target / "projects" / name
+                dirs[number] = cwd
+                env = dict(os.environ, PYTHONPATH=str(cwd / "src")) if number == 2 else None
+                checks.append(execute(
+                    [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+                    cwd, env=env, timeout=180))
+                if number == 2:
+                    checks.append(execute([sys.executable, "-m", "research_os", "verify"],
+                                          cwd, env=env))
+                if number == 3:
+                    checks.append(execute([sys.executable, "scripts/run_lab.py", "--static-only"], cwd))
+                    if args.codeql_runtime:
+                        checks.append(execute([sys.executable, "scripts/run_lab.py"],
+                                              cwd, timeout=900))
+                    else:
+                        checks.append({"status": "blocked",
+                                       "reason": "CodeQL runtime not demonstrated; requires licensed CLI"})
+            except (ValueError, OSError, subprocess.CalledProcessError,
+                    subprocess.TimeoutExpired, tarfile.TarError) as exc:
+                checks.append({"status": "blocked", "reason": str(exc)[:300]})
+            results.append({"id": number, "project": name, "source_ref": ref,
+                            "expected_sha": sha, "checks": checks})
+        integrations = []
+        if 11 in dirs:
+            report_engine = dirs[11] / "report_engine.py"
+            for number, fixture in ((4, "fixtures/owned-lab-matrix.json"),
+                                    (5, "fixtures/insecure-synthetic.yml"),
+                                    (10, "fixtures/aws-overprivileged.json")):
+                if number not in dirs:
+                    integrations.append({"name": str(number) + "->11", "status": "blocked"})
+                    continue
+                source = dirs[number]
+                raw = subprocess.run([sys.executable, "auditor.py", fixture], cwd=source,
+                                     capture_output=True, text=True, timeout=90)
+                if raw.returncode:
+                    integrations.append({"name": str(number) + "->11", "status": "failed",
+                                         "reason": raw.stderr[-300:]})
+                    continue
+                try:
+                    document = json.loads(raw.stdout)
+                    source_file = work / ("input-" + str(number) + ".json")
+                    source_file.write_text(json.dumps(document))
+                    os.chmod(source_file, 0o600)
+                    dest = work / ("output-" + str(number) + ".json")
+                    converted = execute([sys.executable, str(report_engine), str(source_file),
+                                         "--format", "json", "--output", str(dest)], work)
+                    if converted["status"] == "passed":
+                        converted_doc = json.loads(dest.read_text())
+                        if converted_doc.get("observation_count") is None or dest.stat().st_mode & 0o077:
+                            converted["status"] = "failed"
+                            converted["reason"] = "Invalid or nonprivate adapter output"
+                    integrations.append({"name": str(number) + "->11", **converted})
+                except (ValueError, OSError, json.JSONDecodeError) as exc:
+                    integrations.append({"name": str(number) + "->11",
+                                         "status": "failed", "reason": str(exc)[:300]})
+        if 12 in dirs:
+            portfolio_output = work / "portfolio.html"
+            check = execute([sys.executable, "portfolio.py",
+                             "fixtures/synthetic-unverified.json", "--out", str(portfolio_output)],
+                            dirs[12])
+            if check["status"] == "passed" and "NOT-AN-AWARD" in portfolio_output.read_text():
+                check["status"] = "failed"
+                check["reason"] = "An unverified award escaped publication filter"
+            integrations.append({"name": "12-unverified-claim-exclusion", **check})
+        statuses = []
+        for item in results:
+            values = [check["status"] for check in item["checks"]]
+            item["status"] = "failed" if "failed" in values else "blocked" if "blocked" in values else "passed"
+            statuses.append(item["status"])
+        summary = {word: statuses.count(word) for word in ("passed", "failed", "blocked")}
+        report = {"program": "AHMAD-IB Hall of Fame Automation Program", "projects": results,
+                  "integrations": integrations, "summary": summary, "release": "HOLD",
+                  "notes": ["GitHub-hosted CI remains billing-blocked.",
+                            "Synthetic results do not validate external vulnerabilities.",
+                            "No sources merged; no repository visibility changed."]}
+    if args.out:
+        dest = args.out.expanduser().resolve(strict=False)
+        if dest.is_relative_to(repo):
+            parser.error("Private test report output must remain outside repository")
+        dest.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+        fd = os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as file:
+            json.dump(report, file, indent=2)
+            file.write("\n")
+    print(json.dumps({"summary": summary,
+                      "integrations": [{"name": x["name"], "status": x["status"]}
+                                       for x in integrations], "release": "HOLD"}, indent=2))
+    return 1 if summary["failed"] else 2 if summary["blocked"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
