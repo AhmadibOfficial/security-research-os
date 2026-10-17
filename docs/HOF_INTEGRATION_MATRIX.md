@@ -18,8 +18,9 @@ A single consolidated offline verifier is staged in `scripts/verify_hof_portfoli
 | 05 GitHub Actions Security Auditor | 11 Security Report Engine | Offline `offline_workflow_static` findings | No workflow execution or third-party attack |
 | 10 Cloud IAM Auditor | 11 Security Report Engine | Offline `offline_iam_snapshot` observations | Not a calculation of effective IAM access |
 | 06 Mobile/API Lab | 04 API Authorization Auditor | Expected vs observed own-lab authorization behavior | Bind 127.0.0.1, synthetic actors, no real money or customers |
-| 07, 08 Mobile analyzers | 02 Research OS / 11 report engine | Future schema adapters | Source findings are heuristics, not validated defects |
-| 09 AI Agent Security Lab | 02 Research OS / 11 report engine | Future simulator-evidence adapter | Simulated permissions do not grant actual tool permissions |
+| 07 Android Deep-Link Analyzer | 11 Security Report Engine | Redacted `offline_manifest_xml` flags → `DL-*` rule IDs | Drop activity/host details, static observations only |
+| 08 WebView Security Analyzer | 11 Security Report Engine | Redacted `offline_source_heuristics` rule IDs | Drop source snippets and locations, regex matches unverified |
+| 09 AI Agent Security Lab | 11 Security Report Engine | Redacted `synthetic_agent_permissions` denial reasons | Simulated permissions do not grant actual tool permissions |
 | 02 Research OS | 12 Security Research Portfolio | Only independently verified and publication-authorized acknowledgments | No private cases, unresolved disclosures, fabricated awards |
 | 11 Report Engine | GitHub Code Scanning | SARIF validation required before any upload | No automatic Code Scanning upload or external disclosure |
 
