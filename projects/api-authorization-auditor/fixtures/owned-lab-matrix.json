@@ -1,0 +1,9 @@
+{
+  "scope": {"mode": "synthetic_offline", "authorization_basis": "owned_lab"},
+  "cases": [
+    {"id": "own-document-readable", "dimension": "object", "operation": "read", "principal": "alice", "resource_owner": "alice", "expected": "allow", "observed": "granted", "impact_verified": true},
+    {"id": "another-user-rejected", "dimension": "object", "operation": "read", "principal": "bob", "resource_owner": "alice", "expected": "deny", "observed": "blocked", "impact_verified": false},
+    {"id": "synthetic-tenant-leak", "dimension": "tenant", "operation": "read", "principal": "bob", "resource_owner": "alice", "expected": "deny", "observed": "granted", "impact_verified": true},
+    {"id": "ambiguous-legacy-endpoint", "dimension": "function", "operation": "execute", "principal": "anonymous", "resource_owner": "admin", "expected": "deny", "observed": "unknown", "impact_verified": false}
+  ]
+}
