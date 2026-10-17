@@ -14,6 +14,9 @@ KNOWN_TYPES = {
     "offline_workflow_static": "github-actions-security-auditor",
     "offline_iam_snapshot": "cloud-iam-auditor",
     "synthetic_offline_matrix": "api-authorization-auditor",
+    "offline_manifest_xml": "android-deeplink-analyzer",
+    "offline_source_heuristics": "webview-security-analyzer",
+    "synthetic_agent_permissions": "ai-agent-security-lab",
 }
 RULE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,120}\Z")
 
@@ -24,20 +27,54 @@ def canonical(report: dict) -> dict:
     assessment = report.get("assessment_type")
     if assessment not in KNOWN_TYPES:
         raise ValueError("Unsupported report type")
-    findings = report.get("findings", report.get("observations"))
-    if not isinstance(findings, list) or len(findings) > 3000:
-        raise ValueError("Expected a bounded findings/observations array")
+    # Each producer has its own source shape; normalize into metadata-only
+    # observations. Never reproduce hostnames, paths, source text or prompts.
     items = []
-    for finding in findings:
-        if not isinstance(finding, dict):
-            raise ValueError("Invalid report entry")
-        rule = finding.get("rule_id") or finding.get("rule") or finding.get("category")
-        if not isinstance(rule, str) or not RULE.fullmatch(rule):
-            raise ValueError("Invalid report rule identifier")
-        severity = finding.get("severity", "review")
-        if severity not in {"critical", "high", "medium", "low", "review", "warning", "info"}:
-            severity = "review"
-        items.append({"rule_id": rule, "severity": severity, "status": "unverified"})
+    if assessment == "offline_manifest_xml":
+        deeplinks = report.get("deeplinks")
+        if not isinstance(deeplinks, list) or len(deeplinks) > 3000:
+            raise ValueError("Invalid deep-link observations")
+        for link in deeplinks:
+            if not isinstance(link, dict) or not isinstance(link.get("observations"), list):
+                raise ValueError("Invalid deep-link entry")
+            for flag in link["observations"]:
+                if not isinstance(flag, str) or not RULE.fullmatch(flag):
+                    raise ValueError("Invalid deep-link flag")
+                items.append({"rule_id": "DL-" + flag, "severity": "review",
+                              "status": "unverified"})
+    elif assessment == "synthetic_agent_permissions":
+        results = report.get("results")
+        if not isinstance(results, list) or len(results) > 3000:
+            raise ValueError("Invalid agent permission observations")
+        for case in results:
+            if not isinstance(case, dict) or type(case.get("allowed")) is not bool:
+                raise ValueError("Invalid agent test case")
+            if case["allowed"]:
+                continue
+            reasons = case.get("reasons")
+            if not isinstance(reasons, list):
+                raise ValueError("Missing denial explanations")
+            for reason in reasons:
+                if not isinstance(reason, str) or not RULE.fullmatch(reason):
+                    raise ValueError("Invalid agent denial reason")
+                items.append({"rule_id": "AGENT-" + reason, "severity": "review",
+                              "status": "unverified"})
+    else:
+        findings = report.get("findings", report.get("observations"))
+        if not isinstance(findings, list) or len(findings) > 3000:
+            raise ValueError("Expected bounded findings/observations")
+        for finding in findings:
+            if not isinstance(finding, dict):
+                raise ValueError("Invalid report entry")
+            rule = finding.get("rule_id") or finding.get("rule") or finding.get("category")
+            if not isinstance(rule, str) or not RULE.fullmatch(rule):
+                raise ValueError("Invalid report rule identifier")
+            severity = finding.get("severity", "review")
+            if severity not in {"critical", "high", "medium", "low", "review", "warning", "info"}:
+                severity = "review"
+            items.append({"rule_id": rule, "severity": severity, "status": "unverified"})
+    if len(items) > 3000:
+        raise ValueError("Normalized observation limit exceeded")
     return {
         "schema_version": "0.1",
         "generator": "AHMAD-IB security-report-engine",
