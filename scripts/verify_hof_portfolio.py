@@ -25,9 +25,9 @@ SOURCES = {
     6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "07f1240e5a54ae74ba9eba0dbb0bdbf319747178"),
     7: ("android-deeplink-analyzer", "feature/hof-07-android-deeplink-analyzer", "fb8f08358d67d0fc1944a615362335d9b42a6b51"),
     8: ("webview-security-analyzer", "feature/hof-08-webview-security-analyzer", "6b9c426f80acc681d03596ab660e9dc357b59add"),
-    9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "6dce830a401f08c26ca01096d0bfb2b79c2a9093"),
+    9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "886e135fd61280508da0a35973bacad059c3fe02"),
     10: ("cloud-iam-auditor", "feature/hof-10-cloud-iam-auditor", "3360a7231db894816b7dfde3605db793402b78d5"),
-    11: ("security-report-engine", "feature/hof-11-security-report-engine", "ab426c1ab24df389c6640b128fc7d2cc25f1fe65"),
+    11: ("security-report-engine", "feature/hof-11-security-report-engine", "f9964b2cecf0c87d261e2c5bc3ee671324920154"),
     12: ("security-research-portfolio", "feature/hof-12-security-research-portfolio", "16f0cb8a7918b1f214c02138ff4720ab9a4ff812"),
 }
 
@@ -197,14 +197,17 @@ def main() -> int:
                 integrations.append({"name": "01/03->02 scope setup", **registered})
         if 11 in dirs:
             report_engine = dirs[11] / "report_engine.py"
-            for number, fixture in ((4, "fixtures/owned-lab-matrix.json"),
-                                    (5, "fixtures/insecure-synthetic.yml"),
-                                    (10, "fixtures/aws-overprivileged.json")):
+            for number, fixture, entry in ((4, "fixtures/owned-lab-matrix.json", "auditor.py"),
+                                    (5, "fixtures/insecure-synthetic.yml", "auditor.py"),
+                                    (7, "fixtures/synthetic-manifest.xml", "analyzer.py"),
+                                    (8, "fixtures/SyntheticUnsafeActivity.java", "analyzer.py"),
+                                    (9, "fixtures/trust-boundaries.json", "policy_lab.py"),
+                                    (10, "fixtures/aws-overprivileged.json", "auditor.py")):
                 if number not in dirs:
                     integrations.append({"name": str(number) + "->11", "status": "blocked"})
                     continue
                 source = dirs[number]
-                raw = subprocess.run([sys.executable, "auditor.py", fixture], cwd=source,
+                raw = subprocess.run([sys.executable, entry, fixture], cwd=source,
                                      capture_output=True, text=True, timeout=90)
                 if raw.returncode:
                     integrations.append({"name": str(number) + "->11", "status": "failed",
