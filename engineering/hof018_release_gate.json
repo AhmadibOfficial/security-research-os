@@ -37,11 +37,42 @@
     "research_os": "5f0301d104751d87c020a02a56bd0b948b7e2b41"
   },
   "pending_gates": [
-    "Run the exact composite source end-to-end localhost probes and regression suite on Kali",
-    "Check entire twelve-project consolidated verification report",
-    "Install licensed official CodeQL CLI and verify QL engine positive/negative behavior",
-    "Resolve GitHub Actions account billing restriction and obtain runner-executed CI",
-    "Complete private research artifact/security and evidence inspection",
-    "Make per-repository source release decisions separately"
-  ]
+    "Run the entire exact pinned-branch 12-project verifier on the authenticated Kali checkout and fix any regressions",
+    "Run the complete original Android Security Toolkit repository test suite against its intended fixture set",
+    "Install a legally eligible official CodeQL CLI and verify true query compilation, positive and negative SARIF results",
+    "Resolve GitHub Actions account billing restriction and obtain successfully executed hosted CI",
+    "Independently inspect private evidence and validate SARIF schema/report compatibility",
+    "Perform isolated repository merge reviews, licensing checks and per-repository release decisions"
+  ],
+  "isolated_verification": {
+    "date": "2026-10-18",
+    "environment": "isolated local Python 3.13 container, not user's Kali",
+    "exact_hof018_script_blob_sha": "a379ea551db61b745b02a37d6f653de943d1e8e5",
+    "exact_hof018_runner": "passed",
+    "synthetic_cases": 5,
+    "true_positives": 1,
+    "true_negatives": 4,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "corrected_same_route_status": 403,
+    "before_correction_status": 200,
+    "emitted_unverified_findings": 1,
+    "private_ledger_mode": "0700",
+    "private_proof_mode": "0600",
+    "baseline_research_os_unit_tests": "13/13 passed",
+    "source_blob_matched_modules": [
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "scope_limitations": "Initial module-level synthetic smoke checks only for 05,07,08,09,10,12; no complete all-branch repo suite. Android Toolkit full checkout unavailable, genuine CodeQL CLI unavailable, hosted CI account billing blocked.",
+    "release_ready": false
+  }
 }
