@@ -66,6 +66,11 @@ def canonical(report: dict) -> dict:
         for finding in findings:
             if not isinstance(finding, dict):
                 raise ValueError("Invalid report entry")
+            if (assessment == "synthetic_offline_matrix"
+                    and finding.get("category") == "expected_policy_behavior"):
+                # Correctly authorized/denied negative controls are test
+                # evidence, not security scanner findings.
+                continue
             rule = finding.get("rule_id") or finding.get("rule") or finding.get("category")
             if not isinstance(rule, str) or not RULE.fullmatch(rule):
                 raise ValueError("Invalid report rule identifier")
