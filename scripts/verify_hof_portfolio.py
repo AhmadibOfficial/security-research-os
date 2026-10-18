@@ -234,6 +234,11 @@ def main() -> int:
                     integrations.append({"name": str(number) + "->11", "status": "blocked"})
                     continue
                 source = dirs[number]
+                if number == 5 and execute([sys.executable, "-c", "import yaml"],
+                                            source)["status"] != "passed":
+                    integrations.append({"name": "5->11", "status": "blocked",
+                                         "reason": "PyYAML is unavailable in the local interpreter"})
+                    continue
                 try:
                     raw = subprocess.run([sys.executable, entry, fixture], cwd=source,
                                          capture_output=True, text=True, timeout=90)
