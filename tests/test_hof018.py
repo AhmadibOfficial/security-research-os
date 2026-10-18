@@ -60,6 +60,45 @@ class HOF018EvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             hof._evidence(normal_rows()[:-1])
 
+    def test_denied_response_must_not_leak_protected_record(self):
+        rows = normal_rows()
+        rows[1]["response"]["body"]["value"] = "SYNTHETIC_ALICE_RECORD"
+        with self.assertRaisesRegex(ValueError, "exposed protected"):
+            hof._evidence(rows)
+
+    def test_authorized_owner_control_must_return_correct_record(self):
+        rows = normal_rows()
+        rows[2]["response"]["body"]["value"] = "SYNTHETIC_ALICE_RECORD"
+        with self.assertRaisesRegex(ValueError, "incorrect synthetic"):
+            hof._evidence(rows)
+
+    def test_invalid_response_body_fails_closed(self):
+        rows = normal_rows()
+        rows[0]["response"]["body"] = "unstructured"
+        with self.assertRaisesRegex(ValueError, "Malformed"):
+            hof._evidence(rows)
+
+    def test_unknown_tool_module_is_not_imported(self):
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "fake.py"
+            file.write_text("raise RuntimeError('must never execute')")
+            with self.assertRaisesRegex(ValueError, "Unknown staged"):
+                hof._module("fake_tool", file)
+
+    def test_tampered_staged_module_is_rejected_before_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            file = Path(temp) / "lab.py"
+            file.write_text("raise RuntimeError('must never execute')")
+            with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                hof._module("hof018_lab", file)
+
+    def test_trusted_module_digest_is_pinned_per_component(self):
+        self.assertEqual(set(hof.TRUSTED_MODULE_SHA256),
+                         {"hof018_lab", "hof018_auditor", "hof018_reporter"})
+        for digest in hof.TRUSTED_MODULE_SHA256.values():
+            self.assertEqual(len(digest), 64)
+            self.assertTrue(all(ch in "0123456789abcdef" for ch in digest))
+
     def test_private_json_output_no_overwrite(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "private" / "artifact.json"

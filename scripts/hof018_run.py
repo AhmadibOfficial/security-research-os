@@ -22,10 +22,23 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from research_os.core import add_case, add_scope, update_case, scorecard, registry, _store_dir
 
+# SHA-256 of trusted, synthetic-only modules at the pinned source revisions.
+# A changed module must be reviewed and deliberately re-pinned before execution.
+TRUSTED_MODULE_SHA256 = {
+    "hof018_lab": "27f707eb174dacb81949669448cb1171e8ac53ccc7b7973d2adbf293706c6533",
+    "hof018_auditor": "356f5e13729e935190ea167f19f7affe8d3bad44ee66a482c36663b4dbee5971",
+    "hof018_reporter": "035743ea67431c0a40c54a5e27e044c75f207a8f5934b03c4e730195212b1133",
+}
+
 
 def _module(name: str, file: Path):
     if file.is_symlink() or not file.is_file() or file.suffix != ".py":
         raise ValueError("Expected trusted, regular local Python module")
+    if name not in TRUSTED_MODULE_SHA256:
+        raise ValueError("Unknown staged tool module")
+    digest = hashlib.sha256(file.read_bytes()).hexdigest()
+    if digest != TRUSTED_MODULE_SHA256[name]:
+        raise ValueError("Source integrity HOLD: pinned module SHA-256 mismatch: " + name)
     spec = importlib.util.spec_from_file_location(name, file)
     if spec is None or spec.loader is None:
         raise ValueError("Unable to load staged source module")
@@ -90,11 +103,19 @@ def _evidence(rows: list[dict]) -> dict:
         ground_truth_positive, expected_status, expected_owner = expected[ident]
         response = item["response"]
         status, body = response["status"], response["body"]
+        if type(status) is not int or not isinstance(body, dict):
+            raise ValueError("Malformed synthetic HTTP evidence")
         authenticated = body.get("synthetic") is True
         owner = body.get("owner")
         is_gap = ident == "unsafe-cross-owner" and status == 200 and authenticated and owner == "alice" and body.get("value") == "SYNTHETIC_ALICE_RECORD"
         if status != expected_status or (expected_owner is not None and owner != expected_owner):
             raise ValueError(f"Observed response contradicts expected synthetic fixture: {ident}")
+        if ident == "fixed-own-owner" and (
+            not authenticated or body.get("value") != "SYNTHETIC_BOB_RECORD"
+        ):
+            raise ValueError("Authorized negative control returned incorrect synthetic record")
+        if status in {401, 403} and ("value" in body or "owner" in body):
+            raise ValueError("Denied synthetic response exposed protected record fields")
         if ground_truth_positive and not is_gap:
             raise ValueError("Synthetic unauthorized-read proof is missing")
         classified_positive = is_gap
@@ -199,7 +220,8 @@ def run(lab_file: Path, auditor_file: Path, report_file: Path,
     # Retain a content-addressed, privacy-reduced synthetic proof locally
     # for later independent inspection. Never copy it to Git or a public URL.
     proof_data = {"mode": "owned_synthetic_lab",
-                  "observations": observations, "metrics": metrics}
+                  "observations": observations, "metrics": metrics,
+                  "source_sha256": dict(TRUSTED_MODULE_SHA256)}
     encoded = (json.dumps(proof_data, indent=2, sort_keys=True) + "\n").encode("utf-8")
     digest = hashlib.sha256(encoded).hexdigest()
     proof = private_directory / "evidence" / (digest + ".json")
@@ -229,7 +251,9 @@ def run(lab_file: Path, auditor_file: Path, report_file: Path,
         "milestone": "HOF-018",
         "scope": "owned_loopback_synthetic_only",
         "case_id": case["id"], "case_status": case["status"],
-        "evidence_sha256": digest, "metrics": metrics,
+        "evidence_sha256": digest,
+        "source_sha256": dict(TRUSTED_MODULE_SHA256),
+        "metrics": metrics,
         "report": canonical, "quality_gate": "synthetic_passed",
         "disclosure": "not_authorized_or_applicable",
         "recognition": "none",

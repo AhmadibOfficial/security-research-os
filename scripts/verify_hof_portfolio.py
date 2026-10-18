@@ -10,6 +10,7 @@ import argparse
 import io
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import subprocess
 import sys
@@ -41,6 +42,18 @@ def execute(args: list[str], cwd: Path, *, timeout=120, env=None) -> dict:
                 "stderr": r.stderr[-600:]}
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"status": "blocked", "reason": str(exc)[:250]}
+
+
+def require_executed_tests(check: dict) -> dict:
+    """Do not count a successful no-tests-discovered unittest as a pass."""
+    if check.get("status") != "passed":
+        return check
+    stream = check.get("stdout", "") + "\n" + check.get("stderr", "")
+    matches = re.findall(r"Ran (\d+) tests? in", stream)
+    if not matches or int(matches[-1]) < 1:
+        return {**check, "status": "failed",
+                "reason": "Test discovery returned success without executing tests"}
+    return {**check, "executed_tests": int(matches[-1])}
 
 
 def from_ref(repo: Path, ref: str, expected: str, source: str, destination: Path):
@@ -102,6 +115,11 @@ def main() -> int:
         results = []
         dirs = {}
         android = args.android_root.expanduser().resolve()
+        if not (android / ".git").exists():
+            # Current historical Kali checkouts commonly use this directory.
+            alternate = Path.home() / "android-security-toolkit"
+            if (alternate / ".git").exists():
+                android = alternate.resolve()
         if (android / ".git").exists():
             first = execute([sys.executable, "-m", "pytest", "-q"], android, timeout=180)
         else:
@@ -119,9 +137,18 @@ def main() -> int:
                 cwd = target if number == 2 else target / "projects" / name
                 dirs[number] = cwd
                 env = dict(os.environ, PYTHONPATH=str(cwd / "src")) if number == 2 else None
-                checks.append(execute(
-                    [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
-                    cwd, env=env, timeout=180))
+                # Project 05 needs a locally installed YAML parser. Record a
+                # missing optional dependency as BLOCKED, not an application
+                # test failure, and never auto-purchase or install packages.
+                optional = (execute([sys.executable, "-c", "import yaml"], cwd)
+                            if number == 5 else {"status": "passed"})
+                if optional["status"] != "passed":
+                    checks.append({"status": "blocked",
+                                   "reason": "Missing local PyYAML; source tests not executed"})
+                else:
+                    checks.append(require_executed_tests(execute(
+                        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+                        cwd, env=env, timeout=180)))
                 if number == 2:
                     checks.append(execute([sys.executable, "-m", "research_os", "verify"],
                                           cwd, env=env))
@@ -207,6 +234,11 @@ def main() -> int:
                     integrations.append({"name": str(number) + "->11", "status": "blocked"})
                     continue
                 source = dirs[number]
+                if number == 5 and execute([sys.executable, "-c", "import yaml"],
+                                            source)["status"] != "passed":
+                    integrations.append({"name": "5->11", "status": "blocked",
+                                         "reason": "PyYAML is unavailable in the local interpreter"})
+                    continue
                 try:
                     raw = subprocess.run([sys.executable, entry, fixture], cwd=source,
                                          capture_output=True, text=True, timeout=90)

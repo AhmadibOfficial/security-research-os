@@ -82,6 +82,27 @@ class ConsolidatedVerificationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.from_ref(root, "HEAD", sha, "projects/sample", output)
 
+    def test_zero_discovered_tests_are_not_a_pass(self):
+        result = {"status": "passed", "exit_code": 0,
+                  "stderr": "Ran 0 tests in 0.000s\\n\\nOK",
+                  "stdout": ""}
+        checked = module.require_executed_tests(result)
+        self.assertEqual(checked["status"], "failed")
+        self.assertIn("without executing tests", checked["reason"])
+
+    def test_real_unittest_count_is_recorded(self):
+        result = {"status": "passed", "exit_code": 0,
+                  "stderr": "Ran 13 tests in 0.045s\\n\\nOK",
+                  "stdout": ""}
+        checked = module.require_executed_tests(result)
+        self.assertEqual(checked["status"], "passed")
+        self.assertEqual(checked["executed_tests"], 13)
+
+    def test_subprocess_failure_remains_failure(self):
+        result = {"status": "failed", "exit_code": 1,
+                  "stderr": "ImportError", "stdout": ""}
+        self.assertEqual(module.require_executed_tests(result), result)
+
     def test_synthetic_python_subprocess(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
