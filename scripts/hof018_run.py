@@ -20,7 +20,7 @@ from urllib.request import Request, ProxyHandler, build_opener
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from research_os.core import add_case, add_scope, update_case, scorecard, registry
+from research_os.core import add_case, add_scope, update_case, scorecard, registry, _store_dir
 
 
 def _module(name: str, file: Path):
@@ -192,6 +192,10 @@ def run(lab_file: Path, auditor_file: Path, report_file: Path,
     if "SYNTHETIC_ALICE_RECORD" in json.dumps(canonical):
         raise ValueError("The report contained raw lab evidence")
 
+    # Initialize and permission the private ledger root before creating its
+    # evidence/ child; Path.mkdir(parents=True) alone may produce 0755 parents
+    # under a permissive default umask.
+    _store_dir(private_directory)
     # Retain a content-addressed, privacy-reduced synthetic proof locally
     # for later independent inspection. Never copy it to Git or a public URL.
     proof_data = {"mode": "owned_synthetic_lab",
