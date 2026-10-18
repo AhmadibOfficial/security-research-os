@@ -43,7 +43,10 @@ class LocalLabHandler(BaseHTTPRequestHandler):
         if actor is None:
             return self._reply(401, {"error": "synthetic actor missing"})
         record = SYNTHETIC_RECORDS[record_id]
-        if mode == "fixed" and record["owner"] != actor:
+        # Synthetic remediation gate permits before/after evidence on the same
+        # unsafe endpoint. Defaults OFF and never binds beyond loopback.
+        remedied = bool(getattr(self.server, "remediation_enabled", False))
+        if (mode == "fixed" or remedied) and record["owner"] != actor:
             return self._reply(403, {"error": "not your record"})
         # Deliberately vulnerable: unsafe mode omits owner check.
         return self._reply(200, {"id": record_id, "owner": record["owner"],
@@ -87,6 +90,7 @@ def make_server(port: int = 0) -> ThreadingHTTPServer:
     if not isinstance(port, int) or not 0 <= port <= 65535:
         raise ValueError("port must be 0–65535")
     server = ThreadingHTTPServer(("127.0.0.1", port), LocalLabHandler)
+    server.remediation_enabled = False
     return server
 
 
