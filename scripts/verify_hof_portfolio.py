@@ -207,13 +207,20 @@ def main() -> int:
                     integrations.append({"name": str(number) + "->11", "status": "blocked"})
                     continue
                 source = dirs[number]
-                raw = subprocess.run([sys.executable, entry, fixture], cwd=source,
-                                     capture_output=True, text=True, timeout=90)
+                try:
+                    raw = subprocess.run([sys.executable, entry, fixture], cwd=source,
+                                         capture_output=True, text=True, timeout=90)
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    integrations.append({"name": str(number) + "->11", "status": "blocked",
+                                         "reason": type(exc).__name__})
+                    continue
                 if raw.returncode:
                     integrations.append({"name": str(number) + "->11", "status": "failed",
                                          "reason": raw.stderr[-300:]})
                     continue
                 try:
+                    # Do not parse execute()'s deliberately truncated log output;
+                    # the original full JSON stream is required for schema checks.
                     document = json.loads(raw.stdout)
                     source_file = work / ("input-" + str(number) + ".json")
                     source_file.write_text(json.dumps(document))
