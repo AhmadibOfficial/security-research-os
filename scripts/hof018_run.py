@@ -220,7 +220,8 @@ def run(lab_file: Path, auditor_file: Path, report_file: Path,
     # Retain a content-addressed, privacy-reduced synthetic proof locally
     # for later independent inspection. Never copy it to Git or a public URL.
     proof_data = {"mode": "owned_synthetic_lab",
-                  "observations": observations, "metrics": metrics}
+                  "observations": observations, "metrics": metrics,
+                  "source_sha256": dict(TRUSTED_MODULE_SHA256)}
     encoded = (json.dumps(proof_data, indent=2, sort_keys=True) + "\n").encode("utf-8")
     digest = hashlib.sha256(encoded).hexdigest()
     proof = private_directory / "evidence" / (digest + ".json")
