@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "assessment_type": "offline_workflow_static",
+  "finding_count": 2,
+  "findings": [
+    {"rule_id": "AST-GHA-001", "severity": "review", "position": "job:synthetic",
+     "assessment": "PRIVATE_TEXT_TO_DISCARD", "status": "requires_manual_validation"},
+    {"rule_id": "AST-GHA-005", "severity": "high", "position": "job:synthetic",
+     "assessment": "SYNTHETIC_SECRET_NEVER_ECHO", "status": "requires_manual_validation"}
+  ]
+}
