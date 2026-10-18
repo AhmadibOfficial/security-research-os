@@ -14,7 +14,6 @@ import json
 import os
 from pathlib import Path
 import sys
-import tempfile
 from threading import Thread
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -191,26 +190,32 @@ def run(lab_file: Path, auditor_file: Path, report_file: Path,
     if "SYNTHETIC_ALICE_RECORD" in json.dumps(canonical):
         raise ValueError("The report contained raw lab evidence")
 
-    # Raw controlled lab observations live only in a private ephemeral file.
-    # The persistent ledger retains a digest, scope, and case state, not responses.
-    with tempfile.TemporaryDirectory(prefix="ahmadib-hof018-") as temp:
-        proof = Path(temp) / "synthetic-proof.json"
-        _private_write(proof, {"mode": "owned_synthetic_lab",
-                               "observations": observations, "metrics": metrics})
-        digest = hashlib.sha256(proof.read_bytes()).hexdigest()
-        scope = add_scope("HOF018 owned synthetic lab",
-                          "127.0.0.1 ephemeral synthetic authorization fixtures",
-                          "Code created and controlled by project owner",
-                          (date.today() + timedelta(days=30)).isoformat(),
-                          private_directory)
-        case = add_case("api-authorization-auditor", scope["id"],
-                        "Synthetic object access bypass and controlled same-route remediation",
-                        proof, private_directory)
-        case = update_case(case["id"], "reproduced",
-                           directory=private_directory)
-        if case["evidence_sha256"] != digest:
-            raise ValueError("Research OS failed to preserve evidence fingerprint")
-    if scorecard(registry(), private_directory)["verified_recognition_count"] != 0:
+    # Retain a content-addressed, privacy-reduced synthetic proof locally
+    # for later independent inspection. Never copy it to Git or a public URL.
+    proof_data = {"mode": "owned_synthetic_lab",
+                  "observations": observations, "metrics": metrics}
+    encoded = (json.dumps(proof_data, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()
+    proof = private_directory / "evidence" / (digest + ".json")
+    if proof.exists() or proof.is_symlink():
+        if proof.is_symlink() or not proof.is_file() or hashlib.sha256(proof.read_bytes()).hexdigest() != digest:
+            raise ValueError("Existing synthetic evidence does not match its expected digest")
+    else:
+        _private_write(proof, proof_data)
+    previous_recognition = scorecard(registry(), private_directory)["verified_recognition_count"]
+    scope = add_scope("HOF018 owned synthetic lab",
+                      "127.0.0.1 ephemeral synthetic authorization fixtures",
+                      "Code created and controlled by project owner",
+                      (date.today() + timedelta(days=30)).isoformat(),
+                      private_directory)
+    case = add_case("api-authorization-auditor", scope["id"],
+                    "Synthetic object access bypass and controlled same-route remediation",
+                    proof, private_directory)
+    case = update_case(case["id"], "reproduced",
+                       directory=private_directory)
+    if case["evidence_sha256"] != digest:
+        raise ValueError("Research OS failed to preserve evidence fingerprint")
+    if scorecard(registry(), private_directory)["verified_recognition_count"] != previous_recognition:
         raise ValueError("Synthetic cases may never create verified recognition credits")
 
     artifact = {
