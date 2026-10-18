@@ -71,6 +71,18 @@ class LocalLabTests(unittest.TestCase):
         with __import__("lab").LOCK:
             SYNTHETIC_WALLETS.update({"alice": 100, "bob": 100})
 
+    def test_same_url_denies_after_synthetic_remediation(self):
+        self.server.remediation_enabled = False
+        try:
+            pre_status, pre = self.request("/unsafe/records/100", actor="bob")
+            self.assertEqual(pre_status, 200)
+            self.assertEqual(pre["owner"], "alice")
+            self.server.remediation_enabled = True
+            post_status, _ = self.request("/unsafe/records/100", actor="bob")
+            self.assertEqual(post_status, 403)
+        finally:
+            self.server.remediation_enabled = False
+
     def test_invalid_amount_rejected(self):
         code, _ = self.request("/unsafe/transfers", payload={
             "from": "alice", "to": "bob", "amount": -1
