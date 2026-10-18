@@ -24,7 +24,7 @@ Run from the existing Research OS Git checkout:
 cd ~/security-research-os
 git fetch origin
 git switch -c review/hof-018 origin/feature/hof-018-end-to-end-research-engine
-python3 -m unittest discover -s tests -v
+PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 scripts/verify_hof_portfolio.py --fetch \
   --out "$HOME/.cache/ahmad-sec/hof-018-portfolio-review.json"
 ```
