@@ -16,7 +16,7 @@ from pathlib import Path
 import sys
 from threading import Thread
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request, ProxyHandler, build_opener
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -53,8 +53,10 @@ def _probe(port: int, route: str, actor: str | None) -> dict:
         raise ValueError("Only three predeclared synthetic routes are allowed")
     headers = {"X-Lab-Actor": actor} if actor else {}
     req = Request(f"http://127.0.0.1:{port}{route}", headers=headers)
+    # Ignore proxy environment settings; transport is explicitly loopback.
+    opener = build_opener(ProxyHandler({}))
     try:
-        with urlopen(req, timeout=3) as response:
+        with opener.open(req, timeout=3) as response:
             status = response.status
             body = response.read(4096)
     except HTTPError as exc:
