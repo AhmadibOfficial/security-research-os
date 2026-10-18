@@ -27,7 +27,7 @@ SOURCES = {
     8: ("webview-security-analyzer", "feature/hof-08-webview-security-analyzer", "6b9c426f80acc681d03596ab660e9dc357b59add"),
     9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "886e135fd61280508da0a35973bacad059c3fe02"),
     10: ("cloud-iam-auditor", "feature/hof-10-cloud-iam-auditor", "3360a7231db894816b7dfde3605db793402b78d5"),
-    11: ("security-report-engine", "feature/hof-11-security-report-engine", "0f1d35e18ecffad3a42ce8935bae69483543b660"),
+    11: ("security-report-engine", "feature/hof-11-security-report-engine", "e755b559797adc73eac246543636eea3191aa7e0"),
     12: ("security-research-portfolio", "feature/hof-12-security-research-portfolio", "16f0cb8a7918b1f214c02138ff4720ab9a4ff812"),
 }
 
