@@ -22,12 +22,12 @@ SOURCES = {
     3: ("codeql-security-research", "feature/hof-003-codeql-query-pack", "5f0301d104751d87c020a02a56bd0b948b7e2b41"),
     4: ("api-authorization-auditor", "feature/hof-004-offline-api-authorization-auditor", "88409b610d2edc6ea0c731f2fe1bbc447351a8d1"),
     5: ("github-actions-security-auditor", "feature/hof-005-offline-actions-security-auditor", "80743c54d698ff03d4d5efadbf4c6ae041b4afac"),
-    6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "07f1240e5a54ae74ba9eba0dbb0bdbf319747178"),
+    6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "4d7f04027ed71039810072274ef3d0744ba8e7c1"),
     7: ("android-deeplink-analyzer", "feature/hof-07-android-deeplink-analyzer", "fb8f08358d67d0fc1944a615362335d9b42a6b51"),
     8: ("webview-security-analyzer", "feature/hof-08-webview-security-analyzer", "6b9c426f80acc681d03596ab660e9dc357b59add"),
     9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "886e135fd61280508da0a35973bacad059c3fe02"),
     10: ("cloud-iam-auditor", "feature/hof-10-cloud-iam-auditor", "3360a7231db894816b7dfde3605db793402b78d5"),
-    11: ("security-report-engine", "feature/hof-11-security-report-engine", "f9964b2cecf0c87d261e2c5bc3ee671324920154"),
+    11: ("security-report-engine", "feature/hof-11-security-report-engine", "0f1d35e18ecffad3a42ce8935bae69483543b660"),
     12: ("security-research-portfolio", "feature/hof-12-security-research-portfolio", "16f0cb8a7918b1f214c02138ff4720ab9a4ff812"),
 }
 
@@ -239,12 +239,47 @@ def main() -> int:
                 check["status"] = "failed"
                 check["reason"] = "An unverified award escaped publication filter"
             integrations.append({"name": "12-unverified-claim-exclusion", **check})
+        # HOF-018: actual synthetic HTTP evidence must flow through Project 06,
+        # Project 04, the Research OS private ledger and Project 11. Source
+        # packages come from pinned branch heads, never an unstaged local build.
+        if all(project in dirs for project in (4, 6, 11)):
+            demo_out = work / "hof018-reviewed.json"
+            end_to_end = execute([
+                sys.executable, str(Path(__file__).with_name("hof018_run.py")),
+                "--lab-file", str(dirs[6] / "lab.py"),
+                "--auditor-file", str(dirs[4] / "auditor.py"),
+                "--report-file", str(dirs[11] / "report_engine.py"),
+                "--private-dir", str(work / "hof018-ledger"),
+                "--out", str(demo_out),
+            ], repo, timeout=90)
+            if end_to_end["status"] == "passed":
+                try:
+                    proof = json.loads(demo_out.read_text(encoding="utf-8"))
+                    if (proof.get("quality_gate") != "synthetic_passed"
+                            or proof.get("metrics", {}).get("synthetic_true_positives") != 1
+                            or proof.get("metrics", {}).get("synthetic_false_positives") != 0
+                            or proof.get("metrics", {}).get("synthetic_false_negatives") != 0
+                            or proof.get("report", {}).get("observation_count") != 1
+                            or proof.get("case_status") != "reproduced"):
+                        end_to_end["status"] = "failed"
+                        end_to_end["reason"] = "Insufficient end-to-end research evidence"
+                except (ValueError, OSError, json.JSONDecodeError) as exc:
+                    end_to_end["status"] = "failed"
+                    end_to_end["reason"] = "Missing verified synthetic output: " + str(exc)[:200]
+            integrations.append({"name": "HOF-018: 06->04->02->11 same-route remediation",
+                                 **end_to_end})
+        else:
+            integrations.append({"name": "HOF-018: 06->04->02->11 same-route remediation",
+                                 "status": "blocked", "reason": "Required source package missing"})
         statuses = []
         for item in results:
             values = [check["status"] for check in item["checks"]]
             item["status"] = "failed" if "failed" in values else "blocked" if "blocked" in values else "passed"
             statuses.append(item["status"])
         summary = {word: statuses.count(word) for word in ("passed", "failed", "blocked")}
+        integration_statuses = [step["status"] for step in integrations]
+        if "failed" in integration_statuses:
+            summary["integration_failure_count"] = integration_statuses.count("failed")
         report = {"program": "AHMAD-IB Hall of Fame Automation Program", "projects": results,
                   "integrations": integrations, "summary": summary, "release": "HOLD",
                   "notes": ["GitHub-hosted CI remains billing-blocked.",
@@ -262,7 +297,9 @@ def main() -> int:
     print(json.dumps({"summary": summary,
                       "integrations": [{"name": x["name"], "status": x["status"]}
                                        for x in integrations], "release": "HOLD"}, indent=2))
-    return 1 if summary["failed"] else 2 if summary["blocked"] else 0
+    return (1 if summary["failed"] or summary.get("integration_failure_count", 0)
+            else 2 if summary["blocked"] or any(item["status"] == "blocked" for item in integrations)
+            else 0)
 
 
 if __name__ == "__main__":
