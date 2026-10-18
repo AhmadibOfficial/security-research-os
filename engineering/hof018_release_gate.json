@@ -1,0 +1,47 @@
+{
+  "milestone": "HOF-018",
+  "kind": "source_and_evidence_acceptance",
+  "source_state": "implemented_on_draft_branch",
+  "synthetic_runtime_state": "not_run_on_kali",
+  "release_decision": "HOLD",
+  "dependent_prs": {
+    "integration": 17,
+    "research_engine": 19,
+    "lab": 9,
+    "report_engine": 14
+  },
+  "required_projects": [
+    "security-research-os",
+    "api-authorization-auditor",
+    "mobile-api-attack-lab",
+    "security-report-engine"
+  ],
+  "synthetic_criteria": {
+    "total_cases": 5,
+    "true_positive": 1,
+    "true_negative": 4,
+    "false_positive": 0,
+    "false_negative": 0,
+    "same_endpoint_before_status": 200,
+    "same_endpoint_after_remediation_status": 403,
+    "emitted_unverified_candidates": 1,
+    "research_case_state": "reproduced",
+    "persisted_proof": "sha256_private",
+    "public_disclosures": 0,
+    "recognition_claims": 0
+  },
+  "source_pins": {
+    "lab": "93145f1cb81cec143b1fe65dcd94f76878da909a",
+    "auditor": "88409b610d2edc6ea0c731f2fe1bbc447351a8d1",
+    "report_engine": "e755b559797adc73eac246543636eea3191aa7e0",
+    "research_os": "5f0301d104751d87c020a02a56bd0b948b7e2b41"
+  },
+  "pending_gates": [
+    "Run the exact composite source end-to-end localhost probes and regression suite on Kali",
+    "Check entire twelve-project consolidated verification report",
+    "Install licensed official CodeQL CLI and verify QL engine positive/negative behavior",
+    "Resolve GitHub Actions account billing restriction and obtain runner-executed CI",
+    "Complete private research artifact/security and evidence inspection",
+    "Make per-repository source release decisions separately"
+  ]
+}
