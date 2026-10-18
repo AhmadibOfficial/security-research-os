@@ -22,7 +22,7 @@ SOURCES = {
     3: ("codeql-security-research", "feature/hof-003-codeql-query-pack", "5f0301d104751d87c020a02a56bd0b948b7e2b41"),
     4: ("api-authorization-auditor", "feature/hof-004-offline-api-authorization-auditor", "88409b610d2edc6ea0c731f2fe1bbc447351a8d1"),
     5: ("github-actions-security-auditor", "feature/hof-005-offline-actions-security-auditor", "80743c54d698ff03d4d5efadbf4c6ae041b4afac"),
-    6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "4d7f04027ed71039810072274ef3d0744ba8e7c1"),
+    6: ("mobile-api-attack-lab", "feature/hof-06-mobile-api-attack-lab", "93145f1cb81cec143b1fe65dcd94f76878da909a"),
     7: ("android-deeplink-analyzer", "feature/hof-07-android-deeplink-analyzer", "fb8f08358d67d0fc1944a615362335d9b42a6b51"),
     8: ("webview-security-analyzer", "feature/hof-08-webview-security-analyzer", "6b9c426f80acc681d03596ab660e9dc357b59add"),
     9: ("ai-agent-security-lab", "feature/hof-09-ai-agent-security-lab", "886e135fd61280508da0a35973bacad059c3fe02"),
