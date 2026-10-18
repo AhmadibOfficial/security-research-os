@@ -41,6 +41,26 @@ class ReportsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             canonical({"schema_version": "0.1", "assessment_type": "unknown", "findings": []})
 
+    def test_normal_authorization_behavior_is_not_a_security_finding(self):
+        matrix = {"schema_version": "0.1",
+                  "assessment_type": "synthetic_offline_matrix",
+                  "observations": [
+                      {"scenario_id": "deny-cross-owner",
+                       "category": "expected_policy_behavior",
+                       "priority": "none"},
+                      {"scenario_id": "owned-lab-bypass",
+                       "category": "authorization_gap_candidate",
+                       "priority": "high"},
+                      {"scenario_id": "allow-own-owner",
+                       "category": "expected_policy_behavior",
+                       "priority": "none"},
+                  ]}
+        converted = canonical(matrix)
+        self.assertEqual(converted["observation_count"], 1)
+        self.assertEqual(converted["observations"][0]["rule_id"],
+                         "authorization_gap_candidate")
+        self.assertNotIn("deny-cross-owner", json.dumps(converted))
+
     def test_deeplink_adapter_does_not_reveal_component_or_host(self):
         source = {
             "schema_version": "0.1", "assessment_type": "offline_manifest_xml",
